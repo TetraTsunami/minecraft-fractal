@@ -2,17 +2,32 @@ import { getAverageColor } from "fast-average-color-node";
 import fs from "fs";
 import PImage from "pureimage";
 
-let validBlockData = [];
+let validBlockData = {};
+const blacklist = [
+    "debug",
+    "debug2",
+    "piston_inner",
+    "repeater",
+    "repeater_on",
+    "dragon_egg",
+    "structure_block.*",
+    "jigsaw.*",
+    ".*door.*",
+    "respawn_anchor.*",
+]
 
-fs.readdir("./block", (err, files) => {
+fs.readdir("./block", async (err, files) => {
     if (err) {
         console.log(err);
         return;
     }
 
-    const promises = files.map((file) => {
+    await Promise.all(files.map(async (file) => {
         if (!file.endsWith(".png")) return Promise.resolve();
-
+        if (blacklist.some((regex) => file.match(regex))) {
+            console.log(`Skipping ${file}`);
+            return Promise.resolve();
+        }
         return PImage.decodePNGFromStream(
             fs.createReadStream("./block/" + file)
         ).then((img) => {
@@ -25,22 +40,22 @@ fs.readdir("./block", (err, files) => {
             }
 
             return getAverageColor("./block/" + file).then((color) => {
-                validBlockData.push({
-                    name: file.replace(".png", ""),
-                    color: color.value.slice(0, 3)
-                });
+                validBlockData[file.replace(".png", "")] = {color: color.value.slice(
+                    0,
+                    3
+                )}
             });
         });
-    });
-
-    Promise.all(promises)
-        .then(() => {
-            fs.writeFileSync(
-                "./blockData.json",
-                JSON.stringify(validBlockData)
-            );
-        })
-        .catch((error) => {
-            console.error(error);
-        });
+    }));
+    
+    fs.writeFile(
+        "./blockData.json",
+        JSON.stringify(validBlockData),
+        (err) => {
+            if (err) {
+                return console.log(err);
+            }
+            console.log(`${Object.entries(validBlockData).length} blocks saved to blockData.json`);
+        }
+    );
 });

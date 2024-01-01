@@ -14,4 +14,18 @@ body {
 #fractal {
     height: 100vh;
     width: 100vw;
+    background: #888;
+}
+
+#loading {
+    position: absolute;
+    inset: 0;
+    background: url(../block/dirt.png);
+    background-repeat: repeat;
+    background-size: 64px;
+    display: none;
+}
+
+.loading #loading {
+    display: block;
 }
